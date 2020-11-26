@@ -37,9 +37,8 @@ func main() {
 		fmt.Println("starting slave...")
 		//Connecting to master...
 		conn, err := net.Dial("tcp", "localhost:9999")
-		//defer conn.Close()
 		if err != nil {
-			fmt.Println("Can't establish connection with master server", err)
+			// Wait 5 sec before next try
 			time.Sleep(5 * time.Second)
 			continue
 		}
